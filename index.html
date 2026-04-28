@@ -93,7 +93,7 @@
     }
 
     main {
-      max-width: 860px;
+      max-width: 1000px;
       margin: 12px auto 0;
       padding: 0 16px 28px;
       width: 100%;
@@ -176,11 +176,73 @@
       border-radius: 12px;
       font-weight: 800;
       text-align: center;
+      border: none;
+      cursor: pointer;
       transition: 0.25s ease;
+      font-size: 15px;
     }
 
     .button:active {
       transform: scale(0.96);
+    }
+
+    .documents-section {
+      display: none;
+      margin-top: 18px;
+      background: rgba(255,255,255,0.96);
+      color: #1f2933;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+    }
+
+    .documents-section h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .site-buttons {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .site-button {
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid #f4b400;
+      background: #fff;
+      color: #111;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .site-button.active {
+      background: linear-gradient(135deg, #f4b400, #e0a400);
+    }
+
+    .document-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .document-link {
+      display: block;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #1f2933;
+      font-weight: 700;
+    }
+
+    .empty-message {
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      padding: 16px;
     }
 
     footer {
@@ -192,6 +254,10 @@
 
     @media (min-width: 700px) {
       .card-container {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .site-buttons {
         grid-template-columns: repeat(3, 1fr);
       }
     }
@@ -202,11 +268,8 @@
 
   <div class="app-header">
     <div class="header-badge">SITE PORTAL</div>
-
     <h1>J.A.O Groundworks</h1>
-
     <div class="header-sub">Site Safety & Operations Hub</div>
-
     <div class="header-date" id="headerDate"></div>
   </div>
 
@@ -241,15 +304,39 @@
       </div>
 
       <div class="card">
-  <div class="card-icon">📍</div>
-  <h2>Manager View</h2>
-  <p>Live view of workers currently on site and active attendance.</p>
-  <a class="button" href="https://plantchecksheet.github.io/SignInSignOut/manager-view.html">
-    Open Manager View
-  </a>
-</div>
+        <div class="card-icon">📍</div>
+        <h2>Manager View</h2>
+        <p>Live view of workers currently on site and active attendance.</p>
+        <a class="button" href="https://plantchecksheet.github.io/SignInSignOut/manager-view.html">
+          Open Manager View
+        </a>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h2>RAMS / Documents</h2>
+        <p>View site-specific Risk Assessments and Method Statements.</p>
+        <button class="button" onclick="toggleDocuments()">
+          Open Documents
+        </button>
+      </div>
 
     </div>
+
+    <section class="documents-section" id="documentsSection">
+      <h2>Site RAMS / Documents</h2>
+
+      <div class="site-buttons">
+        <button class="site-button" onclick="showDocuments('work', this)">Work</button>
+        <button class="site-button" onclick="showDocuments('tesco', this)">Tesco</button>
+        <button class="site-button" onclick="showDocuments('home', this)">Home</button>
+      </div>
+
+      <div class="document-list" id="documentList">
+        <div class="empty-message">Select a site to view documents.</div>
+      </div>
+    </section>
+
   </main>
 
   <footer>
@@ -261,6 +348,91 @@
     const today = new Date();
     const options = { day: "numeric", month: "short", year: "numeric" };
     headerDate.textContent = today.toLocaleDateString("en-GB", options);
+
+    /*
+      Replace the example links below with your real Google Drive document links.
+
+      Recommended Drive setup:
+      - Create a folder called RAMS
+      - Inside it create folders:
+        - Work
+        - Tesco
+        - Home
+      - Upload the correct documents into each folder
+      - Right-click each document > Share > Copy link
+      - Paste the link below
+    */
+
+    const documentsBySite = {
+      work: [
+        {
+          name: "Work - Risk Assessment",
+          url: "https://drive.google.com/your-work-risk-assessment-link"
+        },
+        {
+          name: "Work - Method Statement",
+          url: "https://drive.google.com/your-work-method-statement-link"
+        }
+      ],
+
+      tesco: [
+        {
+          name: "Tesco - Risk Assessment",
+          url: "https://drive.google.com/your-tesco-risk-assessment-link"
+        },
+        {
+          name: "Tesco - Method Statement",
+          url: "https://drive.google.com/your-tesco-method-statement-link"
+        }
+      ],
+
+      home: [
+        {
+          name: "Home - Risk Assessment",
+          url: "https://drive.google.com/your-home-risk-assessment-link"
+        },
+        {
+          name: "Home - Method Statement",
+          url: "https://drive.google.com/your-home-method-statement-link"
+        }
+      ]
+    };
+
+    function toggleDocuments() {
+      const section = document.getElementById("documentsSection");
+
+      if (section.style.display === "block") {
+        section.style.display = "none";
+      } else {
+        section.style.display = "block";
+        section.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
+    function showDocuments(site, button) {
+      const documentList = document.getElementById("documentList");
+      const siteButtons = document.querySelectorAll(".site-button");
+
+      siteButtons.forEach(btn => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      const documents = documentsBySite[site] || [];
+
+      if (documents.length === 0) {
+        documentList.innerHTML = `
+          <div class="empty-message">
+            No documents uploaded for this site yet.
+          </div>
+        `;
+        return;
+      }
+
+      documentList.innerHTML = documents.map(doc => `
+        <a class="document-link" href="${doc.url}" target="_blank" rel="noopener">
+          📄 ${doc.name}
+        </a>
+      `).join("");
+    }
   </script>
 
 </body>
