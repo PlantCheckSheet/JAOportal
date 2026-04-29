@@ -102,6 +102,14 @@ main{
   text-align:center;
 }
 
+.doc-meta{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  margin-top:4px;
+  opacity:0.75;
+}
+
 .back-link{
   display:block;
   text-align:center;
@@ -114,6 +122,11 @@ main{
 .warning{
   background:#fff3cd;
   color:#856404;
+}
+
+.error{
+  background:#fde2e2;
+  color:#7f1d1d;
 }
 
 footer{
@@ -139,6 +152,7 @@ footer{
 <main>
   <div class="card" id="content">
     <h2>Loading documents...</h2>
+    <p>Please wait while we check your site documents.</p>
   </div>
 
   <a class="back-link" href="index.html">← Back to Portal</a>
@@ -149,80 +163,81 @@ footer{
 </footer>
 
 <script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH1p_PiBFm45VSpBC83nSPDkSVjuJFg_YIIMchO5u2ivyn7ibNZuA52weq8p4mqyX1VA/exec";
+
 const signedInSite = localStorage.getItem("jaoSignedInSite");
-
-const documentsBySite = {
-  work: [
-    {
-      name: "Work - Risk Assessment",
-      url: "https://drive.google.com/your-work-risk-assessment-link"
-    },
-    {
-      name: "Work - Method Statement",
-      url: "https://drive.google.com/your-work-method-statement-link"
-    }
-  ],
-
-  tesco: [
-    {
-      name: "Tesco - Risk Assessment",
-      url: "https://drive.google.com/your-tesco-risk-assessment-link"
-    },
-    {
-      name: "Tesco - Method Statement",
-      url: "https://drive.google.com/your-tesco-method-statement-link"
-    }
-  ],
-
-  home: [
-    {
-      name: "Home - Risk Assessment",
-      url: "https://drive.google.com/your-home-risk-assessment-link"
-    },
-    {
-      name: "Home - Method Statement",
-      url: "https://drive.google.com/your-home-method-statement-link"
-    }
-  ]
-};
-
-function normaliseSiteName(site){
-  return String(site || "").trim().toLowerCase();
-}
-
 const content = document.getElementById("content");
 
-if(!signedInSite){
-  content.classList.add("warning");
-  content.innerHTML = `
-    <h2>Please sign in first</h2>
-    <p>You must be signed into a site before viewing site documents.</p>
-    <a class="document-link" href="https://plantchecksheet.github.io/SignInSignOut/">
-      Go to Sign In
-    </a>
-  `;
-}else{
-  const siteKey = normaliseSiteName(signedInSite);
-  const documents = documentsBySite[siteKey];
+function escapeHtml(value){
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-  if(!documents || documents.length === 0){
+async function loadDocuments(){
+  if(!signedInSite){
+    content.classList.add("warning");
     content.innerHTML = `
-      <h2>No documents found</h2>
-      <p>You are signed into: <strong>${signedInSite}</strong></p>
-      <p>No documents have been uploaded for this site yet.</p>
+      <h2>Please sign in first</h2>
+      <p>You must be signed into a site before viewing site documents.</p>
+      <a class="document-link" href="https://plantchecksheet.github.io/SignInSignOut/">
+        Go to Sign In
+      </a>
     `;
-  }else{
+    return;
+  }
+
+  try{
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "getRAMSDocuments",
+        site: signedInSite
+      })
+    });
+
+    const result = await response.json();
+
+    if(!result.success){
+      throw new Error(result.message || "Unable to load documents");
+    }
+
+    const documents = Array.isArray(result.documents) ? result.documents : [];
+
+    if(documents.length === 0){
+      content.innerHTML = `
+        <h2>No documents found</h2>
+        <p>You are signed into: <strong>${escapeHtml(signedInSite)}</strong></p>
+        <p>No documents have been uploaded for this site yet.</p>
+      `;
+      return;
+    }
+
     content.innerHTML = `
-      <h2>Documents for ${signedInSite}</h2>
+      <h2>Documents for ${escapeHtml(signedInSite)}</h2>
       <p>Only documents for your current signed-in site are shown below.</p>
       ${documents.map(doc => `
-        <a class="document-link" href="${doc.url}" target="_blank" rel="noopener">
-          📄 ${doc.name}
+        <a class="document-link" href="${escapeHtml(doc.url)}" target="_blank" rel="noopener">
+          📄 ${escapeHtml(doc.name)}
+          ${doc.lastUpdated ? `<span class="doc-meta">Last updated: ${escapeHtml(doc.lastUpdated)}</span>` : ""}
         </a>
       `).join("")}
     `;
+
+  }catch(error){
+    content.classList.add("error");
+    content.innerHTML = `
+      <h2>Unable to load documents</h2>
+      <p>${escapeHtml(error.message)}</p>
+      <p>Please check the Apps Script web app URL and deployment permissions.</p>
+    `;
   }
 }
+
+loadDocuments();
 </script>
 
 </body>
